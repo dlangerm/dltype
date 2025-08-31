@@ -45,17 +45,19 @@ else:
 
 def _resolve_numpy_dtype(
     np_array_t: type[npt.NDArray[typing.Any]],
-) -> list[npt.DTypeLike]:
+) -> frozenset[npt.DTypeLike]:
     """Resolve the numpy dtype of a numpy array."""
     maybe_dtype_arg = typing.get_args(np_array_t)[1]
     maybe_dtype = typing.get_args(maybe_dtype_arg)
 
     # if the dtype is a union of types, we need to resolve it
-    return [
-        typing.cast("npt.DTypeLike", dtype)
-        for maybe_union in maybe_dtype
-        for dtype in typing.get_args(maybe_union) or [maybe_union]
-    ]
+    return frozenset(
+        (
+            typing.cast("npt.DTypeLike", dtype)
+            for maybe_union in maybe_dtype
+            for dtype in typing.get_args(maybe_union) or [maybe_union]
+        )
+    )
 
 
 class TensorTypeBase:
@@ -65,7 +67,7 @@ class TensorTypeBase:
     It may also choose to validate the datatype of the tensor.
     """
 
-    DTYPES: typing.ClassVar[tuple[DLtypeDtypeT, ...]] = ()
+    DTYPES: typing.ClassVar[frozenset[DLtypeDtypeT]] = frozenset()
     """The torch dtypes that this tensor type asserts to contain. (empty for any dtype)."""
 
     def __init__(self, shape: str | None, optional: bool = False) -> None:
@@ -194,7 +196,7 @@ class TensorTypeBase:
             raise _errors.DLTypeShapeError(msg)
 
         if self.DTYPES and tensor.dtype not in self.DTYPES:
-            msg = f"Invalid dtype {tensor.dtype} expected {self.DTYPES}"
+            msg = f"Invalid dtype {tensor.dtype!r} ({type(tensor.dtype)}) expected {self.DTYPES}"
             raise _errors.DLTypeDtypeError(msg)
 
         for idx, dim in self._literal_dims:

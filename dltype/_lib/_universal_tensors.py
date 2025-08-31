@@ -55,7 +55,7 @@ class Int8Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an 8-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchInt8Tensor.DTYPES, *NumPyInt8Tensor.DTYPES)
+        frozenset({*TorchInt8Tensor.DTYPES, *NumPyInt8Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchInt8Tensor.DTYPES
@@ -71,7 +71,7 @@ class UInt8Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an unsigned 8-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchUInt8Tensor.DTYPES, *NumPyUInt8Tensor.DTYPES)
+        frozenset({*TorchUInt8Tensor.DTYPES, *NumPyUInt8Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchUInt8Tensor.DTYPES
@@ -87,7 +87,7 @@ class Int16Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a 16-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchInt16Tensor.DTYPES, *NumPyInt16Tensor.DTYPES)
+        frozenset({*TorchInt16Tensor.DTYPES, *NumPyInt16Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchInt16Tensor.DTYPES
@@ -103,7 +103,7 @@ class UInt16Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an unsigned 16-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchUInt16Tensor.DTYPES, *NumPyUInt16Tensor.DTYPES)
+        frozenset({*TorchUInt16Tensor.DTYPES, *NumPyUInt16Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchUInt16Tensor.DTYPES
@@ -119,7 +119,7 @@ class Int32Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a 32-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchInt32Tensor.DTYPES, *NumPyInt32Tensor.DTYPES)
+        frozenset({*TorchInt32Tensor.DTYPES, *NumPyInt32Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchInt32Tensor.DTYPES
@@ -135,7 +135,7 @@ class UInt32Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an unsigned 32-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchUInt32Tensor.DTYPES, *NumPyUInt32Tensor.DTYPES)
+        frozenset({*TorchUInt32Tensor.DTYPES, *NumPyUInt32Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchUInt32Tensor.DTYPES
@@ -151,7 +151,7 @@ class Int64Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a 64-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchInt64Tensor.DTYPES, *NumPyInt64Tensor.DTYPES)
+        frozenset({*TorchInt64Tensor.DTYPES, *NumPyInt64Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchInt64Tensor.DTYPES
@@ -167,7 +167,7 @@ class UInt64Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an unsigned 64-bit integer tensor type."""
 
     DTYPES = (
-        (*TorchUInt64Tensor.DTYPES, *NumPyUInt64Tensor.DTYPES)
+        frozenset({*TorchUInt64Tensor.DTYPES, *NumPyUInt64Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchUInt64Tensor.DTYPES
@@ -183,7 +183,7 @@ class SignedIntTensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an integer tensor of any precision (8 bit, 16 bit, 32 bit and 64 bit)."""
 
     DTYPES = (
-        (*TorchSignedIntTensor.DTYPES, *NumPySignedIntTensor.DTYPES)
+        frozenset({*TorchSignedIntTensor.DTYPES, *NumPySignedIntTensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchIntTensor.DTYPES
@@ -199,7 +199,7 @@ class UnsignedIntTensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an unsigned integer tensor of any precision (8 bit, 16 bit, 32 bit and 64 bit)."""
 
     DTYPES = (
-        (*TorchUnsignedIntTensor.DTYPES, *NumPyUnsignedIntTensor.DTYPES)
+        frozenset({*TorchUnsignedIntTensor.DTYPES, *NumPyUnsignedIntTensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchUnsignedIntTensor.DTYPES
@@ -215,7 +215,7 @@ class IntTensor(_tensor_type_base.TensorTypeBase):
     """A class to represent an integer tensor (signed or unsigned) of any precision (8 bit, 16 bit, 32 bit and 64 bit)."""
 
     DTYPES = (
-        (*TorchIntTensor.DTYPES, *NumPyIntTensor.DTYPES)
+        frozenset({*TorchIntTensor.DTYPES, *NumPyIntTensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchIntTensor.DTYPES
@@ -233,7 +233,9 @@ class IEEE754HalfFloatTensor(_tensor_type_base.TensorTypeBase):
     Use this type if bfloat16 causes issues for some reason and you need to prohibit its use."""
 
     DTYPES = (
-        (*TorchIEEE754HalfFloatTensor.DTYPES, *NumPyIEEE754HalfFloatTensor.DTYPES)
+        frozenset(
+            {*TorchIEEE754HalfFloatTensor.DTYPES, *NumPyIEEE754HalfFloatTensor.DTYPES}
+        )
         if is_torch_available() and is_numpy_available()
         else (
             TorchIEEE754HalfFloatTensor.DTYPES
@@ -248,14 +250,14 @@ class IEEE754HalfFloatTensor(_tensor_type_base.TensorTypeBase):
 class BFloat16Tensor(_tensor_type_base.TensorTypeBase):
     """A tensor that can only be bfloat16."""
 
-    DTYPES = TorchBFloat16Tensor.DTYPES if is_torch_available() else ()
+    DTYPES = TorchBFloat16Tensor.DTYPES if is_torch_available() else frozenset()
 
 
 class Float16Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent any 16-bit float tensor types (includes bfloat16)."""
 
     DTYPES = (
-        (*TorchFloat16Tensor.DTYPES, *NumPyFloat16Tensor.DTYPES)
+        frozenset({*TorchFloat16Tensor.DTYPES, *NumPyFloat16Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchFloat16Tensor.DTYPES
@@ -271,7 +273,7 @@ class Float32Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a 32-bit float tensor type."""
 
     DTYPES = (
-        (*TorchFloat32Tensor.DTYPES, *NumPyFloat32Tensor.DTYPES)
+        frozenset({*TorchFloat32Tensor.DTYPES, *NumPyFloat32Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchFloat32Tensor.DTYPES
@@ -287,7 +289,7 @@ class Float64Tensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a double tensor type."""
 
     DTYPES = (
-        (*TorchFloat64Tensor.DTYPES, *NumPyFloat64Tensor.DTYPES)
+        frozenset({*TorchFloat64Tensor.DTYPES, *NumPyFloat64Tensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchFloat64Tensor.DTYPES
@@ -308,7 +310,7 @@ class FloatTensor(_tensor_type_base.TensorTypeBase):
     This includes 16 bit, 32 bit, 64 bit, and optionally numpy's 128 bit if it is supported."""
 
     DTYPES = (
-        (*TorchFloatTensor.DTYPES, *NumpyFloatTensor.DTYPES)
+        frozenset({*TorchFloatTensor.DTYPES, *NumpyFloatTensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchFloatTensor.DTYPES
@@ -324,7 +326,7 @@ class BoolTensor(_tensor_type_base.TensorTypeBase):
     """A class to represent a boolean tensor type."""
 
     DTYPES = (
-        (*TorchBoolTensor.DTYPES, *NumPyBoolTensor.DTYPES)
+        frozenset({*TorchBoolTensor.DTYPES, *NumPyBoolTensor.DTYPES})
         if is_torch_available() and is_numpy_available()
         else (
             TorchBoolTensor.DTYPES

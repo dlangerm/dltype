@@ -56,7 +56,7 @@ def test_dltype_imports_without_torch(mock_missing_torch: None):
 
     _reloaded_dltype = reload(dltype)
 
-    assert _reloaded_dltype.BoolTensor.DTYPES == (numpy.bool_,)
+    assert _reloaded_dltype.BoolTensor.DTYPES == frozenset((numpy.bool_,))
 
 
 def test_dltype_imports_without_numpy(mock_missing_numpy: None):
@@ -68,15 +68,17 @@ def test_dltype_imports_without_numpy(mock_missing_numpy: None):
 
     _reloaded_dltype = reload(dltype)
 
-    assert _reloaded_dltype.BoolTensor.DTYPES == (torch.bool,)
+    assert _reloaded_dltype.BoolTensor.DTYPES == frozenset((torch.bool,))
 
 
 def test_dltype_imports_with_both():
     """Test that dltype can be imported with both torch and numpy."""
     _reloaded_dltype = reload(dltype)
-    assert _reloaded_dltype.BoolTensor.DTYPES == (
-        torch.bool,
-        numpy.bool_,
+    assert _reloaded_dltype.BoolTensor.DTYPES == frozenset(
+        (
+            torch.bool,
+            numpy.bool_,
+        )
     )
 
 
