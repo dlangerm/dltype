@@ -92,8 +92,8 @@ class DLTypeContext:
             # skip optional tensors
             return
         if not any(isinstance(tensor, T) for T in _dtypes.SUPPORTED_TENSOR_TYPES):
-            msg = f"Invalid type {type(tensor)}"
-            raise _errors.DLTypeError(msg)
+            msg = f"Invalid tensor type got={type(tensor)} expected one of {_dtypes.SUPPORTED_TENSOR_TYPES}"
+            raise _errors.DLTypeError(error_ctx=msg)
         self._hinted_tensors.append(_ConcreteType(name, tensor, dltype_annotation))
 
     def assert_context(self) -> None:
