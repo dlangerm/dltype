@@ -34,3 +34,63 @@ ignore = []
 include = ["dltype"]
 reportUnnecessaryTypeIgnoreComment = "error"
 typeCheckingMode = "strict"
+
+[tool.ruff]
+indent-width = 4
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.format]
+docstring-code-format = true
+docstring-code-line-length = "dynamic"
+line-ending = "lf"
+
+[tool.ruff.lint]
+extend-select = [
+  "ERA",
+  "ANN",
+  "B",
+  "BLE",
+  "FBT",
+  "COM",
+  "C4",
+  "EM",
+  "FA",
+  "ISC",
+  "ICN",
+  "LOG",
+  "G",
+  "INP",
+  "PIE",
+  "T20",
+  "PT",
+  "Q",
+  "RSE",
+  "RET",
+  "SLF",
+  "SIM",
+  "TID",
+  "TC",
+  "ARG",
+  "PTH",
+  "I",
+  "C90",
+  "NPY",
+  "N",
+  "PERF",
+  "E",
+  "W",
+  "DOC",
+  "D",
+  "F",
+  "PLE",
+  "PLR",
+  "PLW",
+  "RUF",
+  "TRY"
+]
+fixable = ["ALL"]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+"dltype/tests/*" = ["D", "ARG", "FBT"]

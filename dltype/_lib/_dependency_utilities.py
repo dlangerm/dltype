@@ -1,8 +1,7 @@
 """Utilities to handle optional dependencies in dltype."""
 
-from collections.abc import Callable
 import typing
-
+from collections.abc import Callable
 from functools import cache
 
 Ret = typing.TypeVar("Ret")
@@ -73,7 +72,7 @@ def raise_for_missing_dependency() -> typing.NoReturn:
     """Raise an ImportError if neither torch nor numpy is available."""
     if not is_torch_available() and not is_numpy_available():
         raise ImportError(
-            "Neither torch nor numpy is available. Please install one of them to use dltype."
+            "Neither torch nor numpy is available. Please install one of them to use dltype.",
         )
     assert False, (
         "Improper use of raise_for_missing_dependency, should only be called when both dependencies are missing."

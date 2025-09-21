@@ -67,15 +67,15 @@ _op_precedence: Final = {
 
 _functional_operators: Final = frozenset({_DLTypeOperator.MIN, _DLTypeOperator.MAX})
 _valid_operators: frozenset[str] = frozenset(
-    {op.value for op in _DLTypeOperator if op not in _functional_operators}
+    {op.value for op in _DLTypeOperator if op not in _functional_operators},
 )
 _valid_modifiers: frozenset[str] = frozenset({mod.value for mod in DLTypeModifier})
 
 INFIX_EXPRESSION_SPLIT_RX: Final = re.compile(
-    f"({'|'.join(map(re.escape, _valid_operators))})"
+    f"({'|'.join(map(re.escape, _valid_operators))})",
 )
 VALID_EXPRESSION_RX: Final = re.compile(
-    f"^[a-zA-Z0-9_{''.join(map(re.escape, _valid_operators.union(_valid_modifiers)))}]+$"
+    f"^[a-zA-Z0-9_{''.join(map(re.escape, _valid_operators.union(_valid_modifiers)))}]+$",
 )
 VALID_IDENTIFIER_RX: Final = re.compile(r"^[a-zA-Z][a-zA-Z0-9\_]*$")
 
@@ -99,9 +99,7 @@ class DLTypeDimensionExpression:
         self.is_literal = not is_multiaxis_literal and all(
             isinstance(token, int) for token in postfix_expression
         )
-        self.is_identifier = is_multiaxis_literal or (
-            postfix_expression == [identifier]
-        )
+        self.is_identifier = is_multiaxis_literal or (postfix_expression == [identifier])
         # this is an expression if it's not a literal value, if it's an identifier that points to another dimension, or if it's an identifier that doesn't just point to itself
         self.is_expression = not self.is_literal and (
             len(postfix_expression) > 1 or self.identifier not in postfix_expression
@@ -130,7 +128,10 @@ class DLTypeDimensionExpression:
 
     @classmethod
     def from_multiaxis_literal(
-        cls, identifier: str, literal: int, is_anonymous: bool = False
+        cls,
+        identifier: str,
+        literal: int,
+        is_anonymous: bool = False,
     ) -> DLTypeDimensionExpression:
         """Create a new dimension expression from a multi-axis literal.
 
@@ -138,7 +139,10 @@ class DLTypeDimensionExpression:
         Anonymous axes are a special case where the actual value of the literal is irrelevant.
         """
         return cls(
-            identifier, [literal], is_multiaxis_literal=True, is_anonymous=is_anonymous
+            identifier,
+            [literal],
+            is_multiaxis_literal=True,
+            is_anonymous=is_anonymous,
         )
 
     def evaluate(self, scope: dict[str, int]) -> int:
@@ -210,8 +214,7 @@ def _postfix_from_infix(identifier: str, expression: str) -> DLTypeDimensionExpr
             while (
                 stack
                 and isinstance(stack[-1], _DLTypeOperator)
-                and _op_precedence.get(stack[-1], 0)
-                >= _op_precedence.get(current_op, 0)
+                and _op_precedence.get(stack[-1], 0) >= _op_precedence.get(current_op, 0)
             ):
                 postfix.append(stack.pop())
 
@@ -232,7 +235,9 @@ def _postfix_from_infix(identifier: str, expression: str) -> DLTypeDimensionExpr
 
 
 def _maybe_parse_functional_expression(
-    identifier: str, expression: str, function: _DLTypeOperator
+    identifier: str,
+    expression: str,
+    function: _DLTypeOperator,
 ) -> DLTypeDimensionExpression | None:
     """Parse a function-like expression such as min(a,b) or max(x,y).
 
@@ -243,6 +248,7 @@ def _maybe_parse_functional_expression(
 
     Returns:
         A parsed dimension expression if the expression is a valid function call, None otherwise
+
     """
     if not expression.startswith(f"{function.value}("):
         return None
@@ -289,7 +295,8 @@ def _maybe_parse_functional_expression(
 
     # Build postfix expression: [arg1 tokens, arg2 tokens, function]
     return DLTypeDimensionExpression(
-        identifier, [*expr_1.parsed_expression, *expr_2.parsed_expression, function]
+        identifier,
+        [*expr_1.parsed_expression, *expr_2.parsed_expression, function],
     )
 
 
@@ -322,6 +329,7 @@ def expression_from_string(expression: str) -> DLTypeDimensionExpression:
 
     Returns:
         A parsed dimension expression.
+
     """
     if not expression:
         msg = f"Empty expression {expression=}"
@@ -334,7 +342,9 @@ def expression_from_string(expression: str) -> DLTypeDimensionExpression:
 
     for function in _functional_operators:
         if result := _maybe_parse_functional_expression(
-            identifier, expression, function
+            identifier,
+            expression,
+            function,
         ):
             _logger.debug("Parsed function expression %r", result)
             return result

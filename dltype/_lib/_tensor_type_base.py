@@ -10,12 +10,12 @@ from typing_extensions import override
 from dltype._lib import (
     _constants,
     _dltype_context,
+    _dtypes,
     _errors,
     _parser,
 )
 from dltype._lib import (
     _dependency_utilities as _deps,
-    _dtypes,
 )
 
 if typing.TYPE_CHECKING:
@@ -71,7 +71,8 @@ class TensorTypeBase:
         return f"{self.__class__.__name__}[{self.expected_shape}]"
 
     def _parse_shape_string(
-        self, shape_string: str | None
+        self,
+        shape_string: str | None,
     ) -> tuple[_parser.DLTypeDimensionExpression, ...]:
         """Parse the shape string into a list of dimension expressions."""
         if shape_string is None:
@@ -106,8 +107,7 @@ class TensorTypeBase:
                 self.multiaxis_index = i
                 self.multiaxis_name = dim_str[len(this_dimension_modifier.value) :]
                 self.anonymous_multiaxis = (
-                    this_dimension_modifier
-                    == _parser.DLTypeModifier.ANONYMOUS_MULTIAXIS
+                    this_dimension_modifier == _parser.DLTypeModifier.ANONYMOUS_MULTIAXIS
                 )
 
             processed_shapes.append(_parser.expression_from_string(dim_str))
@@ -120,24 +120,26 @@ class TensorTypeBase:
         return cls(shape_string)
 
     def __get_pydantic_core_schema__(
-        self, source_type: type, handler: GetCoreSchemaHandler
+        self,
+        source_type: type,
+        handler: GetCoreSchemaHandler,
     ) -> core_schema.CoreSchema:
         """Get the Pydantic core schema for this type."""
 
         def validate_tensor(
-            tensor: _dtypes.DLtypeTensorT, info: ValidationInfo
+            tensor: _dtypes.DLtypeTensorT,
+            info: ValidationInfo,
         ) -> _dtypes.DLtypeTensorT:
             """Validate the tensor."""
             __tracebackhide__ = not _constants.DEBUG_MODE
             self.check(tensor, info.field_name or "anonymous")
 
             if _constants.PYDANTIC_INFO_KEY not in info.data:
-                info.data[_constants.PYDANTIC_INFO_KEY] = (
-                    _dltype_context.DLTypeContext()
-                )
+                info.data[_constants.PYDANTIC_INFO_KEY] = _dltype_context.DLTypeContext()
 
             dl_context = typing.cast(
-                "_dltype_context.DLTypeContext", info.data[_constants.PYDANTIC_INFO_KEY]
+                "_dltype_context.DLTypeContext",
+                info.data[_constants.PYDANTIC_INFO_KEY],
             )
             dl_context.add(info.field_name or "_unknown_", tensor, self)
             dl_context.assert_context()
@@ -164,7 +166,9 @@ class TensorTypeBase:
         )
 
     def check(
-        self, tensor: _dtypes.DLtypeTensorT, tensor_name: str = "anonymous"
+        self,
+        tensor: _dtypes.DLtypeTensorT,
+        tensor_name: str = "anonymous",
     ) -> None:
         """Check if the tensor matches this type."""
         # Basic validation for multi-axis dimensions

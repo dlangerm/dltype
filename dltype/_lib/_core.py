@@ -28,9 +28,9 @@ from dltype._lib import (
     _constants,
     _dependency_utilities,
     _dltype_context,
+    _dtypes,
     _errors,
     _tensor_type_base,
-    _dtypes,
 )
 
 if TYPE_CHECKING:
@@ -51,7 +51,9 @@ class _DLTypeAnnotation(NamedTuple):
 
     @classmethod
     def from_hint(
-        cls, hint: type | None, optional: bool = False
+        cls,
+        hint: type | None,
+        optional: bool = False,
     ) -> _DLTypeAnnotation | None:
         """Create a new _DLTypeAnnotation from a type hint."""
         if hint is None:
@@ -81,7 +83,8 @@ class _DLTypeAnnotation(NamedTuple):
 
         # Ensure the annotation is a TensorTypeBase
         if len(args) < n_expected_args or not isinstance(
-            args[1], _tensor_type_base.TensorTypeBase
+            args[1],
+            _tensor_type_base.TensorTypeBase,
         ):
             _logger.warning(
                 "Invalid annotated dltype hint: %r",
@@ -109,7 +112,8 @@ class DLTypeScopeProvider(Protocol):
 
 
 def _maybe_get_type_hints(
-    existing_hints: dict[str, _DLTypeAnnotation | None] | None, func: Callable[P, R]
+    existing_hints: dict[str, _DLTypeAnnotation | None] | None,
+    func: Callable[P, R],
 ) -> dict[str, _DLTypeAnnotation | None] | None:
     """Get the type hints for a function, or return an empty dict if not available."""
     if existing_hints is not None:
@@ -124,7 +128,8 @@ def _maybe_get_type_hints(
 
 
 def _maybe_get_signature(
-    existing: inspect.Signature | None, func: Callable[P, R]
+    existing: inspect.Signature | None,
+    func: Callable[P, R],
 ) -> inspect.Signature | None:
     """Get the signature of a function, or return an empty signature if not available."""
     if existing is not None:
@@ -146,6 +151,7 @@ def dltyped(  # noqa: C901, PLR0915
 
     Returns:
         A wrapper function with type checking
+
     """
 
     def _inner_dltyped(func: Callable[P, R]) -> Callable[P, R]:  # noqa: C901, PLR0915
@@ -159,9 +165,7 @@ def dltyped(  # noqa: C901, PLR0915
         # we can't check the signature in this case, so we just assume it's a method for now to avoid raising a false positive error
         # if it _isn't_ a method but we specified "self", later on when we check if the scope provider is a DLTypeScopeProvider, we'll raise an error
         is_method = (
-            bool("self" in signature.parameters or "cls" in signature.parameters)
-            if signature
-            else True
+            bool("self" in signature.parameters or "cls" in signature.parameters) if signature else True
         )
         if scope_provider == "self" and not is_method:
             msg = "Scope provider types can only be used with methods."
@@ -204,20 +208,20 @@ def dltyped(  # noqa: C901, PLR0915
             ctx = _dltype_context.DLTypeContext()
 
             if scope_provider == "self" and isinstance(
-                _actual_args[str(scope_provider)], DLTypeScopeProvider
+                _actual_args[str(scope_provider)],
+                DLTypeScopeProvider,
             ):
-                ctx.tensor_shape_map = _actual_args[
-                    str(scope_provider)
-                ].get_dltype_scope()
+                ctx.tensor_shape_map = _actual_args[str(scope_provider)].get_dltype_scope()
                 _logger.debug("Using self as scope provider %s", ctx.tensor_shape_map)
             elif scope_provider is not None and isinstance(
-                scope_provider, DLTypeScopeProvider
+                scope_provider,
+                DLTypeScopeProvider,
             ):
                 ctx.tensor_shape_map = scope_provider.get_dltype_scope()
                 _logger.debug("Using unbound scope provider %s", ctx.tensor_shape_map)
             elif scope_provider is not None:
                 raise _errors.DLTypeScopeProviderError(
-                    bad_scope_provider=scope_provider
+                    bad_scope_provider=scope_provider,
                 )
 
             for name in dltype_hints:
@@ -234,10 +238,7 @@ def dltyped(  # noqa: C901, PLR0915
                 if maybe_annotation := dltype_hints.get(name):
                     tensor = _actual_args[name]
                     ctx.add(name, tensor, maybe_annotation.dltype_annotation)
-                elif any(
-                    isinstance(_actual_args[name], T)
-                    for T in _dtypes.SUPPORTED_TENSOR_TYPES
-                ):
+                elif any(isinstance(_actual_args[name], T) for T in _dtypes.SUPPORTED_TENSOR_TYPES):
                     warnings.warn(
                         f"[argument={name}] is missing a DLType hint",
                         UserWarning,
@@ -251,7 +252,9 @@ def dltyped(  # noqa: C901, PLR0915
                 retval = func(*args, **kwargs)
                 if maybe_return_annotation := dltype_hints.get(_return_key):
                     ctx.add(
-                        _return_key, retval, maybe_return_annotation.dltype_annotation
+                        _return_key,
+                        retval,
+                        maybe_return_annotation.dltype_annotation,
                     )
                     ctx.assert_context()
                 elif any(isinstance(retval, T) for T in _dtypes.SUPPORTED_TENSOR_TYPES):
@@ -280,6 +283,7 @@ def dltyped_namedtuple() -> Callable[[type[NT]], type[NT]]:  # noqa: C901
 
     Returns:
         A modified NamedTuple class with type checking on construction
+
     """
 
     def _inner_dltyped_namedtuple(cls: type[NT]) -> type[NT]:
@@ -348,6 +352,7 @@ def dltyped_dataclass() -> Callable[[type[DataclassT]], type[DataclassT]]:
 
     Returns:
         A modified dataclass with type checking on initialization
+
     """
 
     def _inner_dltyped_dataclass(cls: type[DataclassT]) -> type[DataclassT]:
@@ -363,10 +368,7 @@ def dltyped_dataclass() -> Callable[[type[DataclassT]], type[DataclassT]]:
         original_init = cls.__init__
         # Get field annotations
         field_hints = get_type_hints(cls, include_extras=True)
-        _dltype_hints = {
-            name: _DLTypeAnnotation.from_hint(hint)
-            for name, hint in field_hints.items()
-        }
+        _dltype_hints = {name: _DLTypeAnnotation.from_hint(hint) for name, hint in field_hints.items()}
 
         def new_init(self: DataclassT, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
             """A new __init__ method that validates the fields after initialization."""
