@@ -44,7 +44,38 @@ class _DLTypeModifier(enum.Enum):
         return self.value
 
 
-class _DLTypeOperator(enum.Enum):
+class _DLTypeFunctionalOperator(enum.Enum):
+    """A function."""
+
+    MIN = "min"
+    MAX = "max"
+    MOD = "mod"
+
+    def evaluate(self, args: tuple[int, int]) -> int:
+        """Evaluate the unary operator."""
+        a, b = args
+        match self:
+            case _DLTypeFunctionalOperator.MIN:
+                return min(a, b)
+            case _DLTypeFunctionalOperator.MAX:
+                return max(a, b)
+            case _DLTypeFunctionalOperator.MOD:
+                return a % b
+
+
+class _DLTypeUnaryFunctionOperator(enum.Enum):
+    """A unary function."""
+
+    ISQRT = "isqrt"
+
+    def evaluate(self, args: tuple[int]) -> int:
+        """Evaluate the unary operator."""
+        match self:
+            case _DLTypeUnaryFunctionOperator.ISQRT:
+                return math.isqrt(args[0])
+
+
+class _DLTypeInfixOperator(enum.Enum):
     """An enum representing a mathematical operator for a dimension expression."""
 
     ADD = "+"
@@ -52,59 +83,45 @@ class _DLTypeOperator(enum.Enum):
     MUL = "*"
     EXP = "^"
     DIV = "/"
-    MIN = "min"
-    MAX = "max"
-    ISQRT = "isqrt"
 
-    def __repr__(self) -> str:
-        return self.value
-
-    def evaluate_unary(self, a: int) -> int:
-        """Evaluate the unary operator."""
-        if self is _DLTypeOperator.ISQRT:
-            return math.isqrt(a)
-        raise NotImplementedError(self)
-
-    def evaluate(self, a: int, b: int) -> int:  # noqa: PLR0911
+    def evaluate(self, args: tuple[int, int]) -> int:
         """Evaluate the operator."""
-        if self is _DLTypeOperator.ADD:
-            return a + b
-        if self is _DLTypeOperator.SUB:
-            return a - b
-        if self is _DLTypeOperator.MUL:
-            return a * b
-        if self is _DLTypeOperator.EXP:
-            return int(a**b)
-        if self is _DLTypeOperator.DIV:
-            return a // b
-        if self is _DLTypeOperator.MIN:
-            return min(a, b)
-        if self is _DLTypeOperator.MAX:
-            return max(a, b)
-        raise NotImplementedError(self)
+        a, b = args
+        match self:
+            case _DLTypeInfixOperator.ADD:
+                return a + b
+            case _DLTypeInfixOperator.SUB:
+                return a - b
+            case _DLTypeInfixOperator.MUL:
+                return a * b
+            case _DLTypeInfixOperator.EXP:
+                return int(a**b)
+            case _DLTypeInfixOperator.DIV:
+                return a // b
 
 
-_op_precedence: typing.Final = {
-    _DLTypeOperator.ADD: 1,
-    _DLTypeOperator.SUB: 1,
-    _DLTypeOperator.MUL: 2,
-    _DLTypeOperator.DIV: 2,
-    _DLTypeOperator.EXP: 3,
-    _DLTypeOperator.MIN: 4,
-    _DLTypeOperator.MAX: 4,
-    _DLTypeOperator.ISQRT: 5,
-    _DLTypeGroupToken.LPAREN: 6,
-}
+_DLTypeOperator = _DLTypeFunctionalOperator | _DLTypeInfixOperator | _DLTypeUnaryFunctionOperator
 
-_unary_functions: typing.Final = frozenset({_DLTypeOperator.ISQRT})
-_binary_functions: typing.Final = frozenset({_DLTypeOperator.MIN, _DLTypeOperator.MAX})
-_functional_operators: typing.Final = frozenset(_unary_functions.union(_binary_functions))
-_infix_operators: typing.Final = frozenset(
-    {_DLTypeOperator.ADD, _DLTypeOperator.SUB, _DLTypeOperator.MUL, _DLTypeOperator.DIV, _DLTypeOperator.EXP}
-)
-_valid_operators: frozenset[str] = frozenset(
-    {op.value for op in _DLTypeOperator if op not in _functional_operators},
-)
+
+def op_precedence(  # noqa: PLR0911
+    op: _DLTypeOperator | _DLTypeGroupToken,
+) -> int:
+    match op:
+        case _DLTypeInfixOperator.ADD | _DLTypeInfixOperator.SUB:
+            return 1
+        case _DLTypeInfixOperator.MUL | _DLTypeInfixOperator.DIV:
+            return 2
+        case _DLTypeInfixOperator.EXP:
+            return 3
+        case _DLTypeFunctionalOperator.MIN | _DLTypeFunctionalOperator.MAX | _DLTypeFunctionalOperator.MOD:
+            return 4
+        case _DLTypeUnaryFunctionOperator.ISQRT:
+            return 5
+        case _DLTypeGroupToken.LPAREN:
+            return 6
+        case _DLTypeGroupToken.RPAREN | _DLTypeGroupToken.COMMA:
+            return 0
+
 
 _VALID_IDENTIFIER_RX: typing.Final = re.compile(r"^[a-zA-Z][a-zA-Z0-9\_]*$")
 
@@ -197,22 +214,19 @@ class DLTypeDimensionExpression:
             return scope[self.identifier]
 
         for token in self.parsed_expression:
-            if isinstance(token, int):
-                # literal integer
-                stack.append(token)
-            elif isinstance(token, str):
-                # intentionally allow KeyError to be raised if the identifier is not in the scope
-                stack.append(scope[token])
-            elif isinstance(token, _DLTypeOperator):  # pyright: ignore[reportUnnecessaryIsInstance]
-                b = stack.pop()
-                if token in _unary_functions:
-                    stack.append(token.evaluate_unary(b))
-                    continue
-                a = stack.pop()
-                stack.append(token.evaluate(a, b))
-            else:
-                msg = f"Invalid token {token=}"
-                raise TypeError(msg)
+            match token:
+                case _DLTypeUnaryFunctionOperator():
+                    a = stack.pop()
+                    stack.append(token.evaluate((a,)))
+                case _DLTypeFunctionalOperator() | _DLTypeInfixOperator():
+                    b = stack.pop()
+                    a = stack.pop()
+                    stack.append(token.evaluate((a, b)))
+                case int():
+                    stack.append(token)
+                case str():
+                    # intentionally allow KeyError to be raised if the identifier is not in the scope
+                    stack.append(scope[token])
 
         if len(stack) != 1:
             msg = f"Invalid stack {stack=}"
@@ -230,7 +244,7 @@ def _maybe_multiaxis(
     if len(expression) == 1 and expression[0] == _DLTypeModifier.ANONYMOUS_MULTIAXIS.value:
         return DLTypeDimensionExpression(identifier, [], is_anonymous=True)
 
-    if len(expression) == 2 and expression[0] == _DLTypeOperator.MUL and isinstance(expression[1], str):  # noqa: PLR2004
+    if len(expression) == 2 and expression[0] == _DLTypeInfixOperator.MUL and isinstance(expression[1], str):  # noqa: PLR2004
         if not _VALID_IDENTIFIER_RX.match(expression[1]):
             msg = f"{expression[1]} is not a valid multiaxis identifier"
             raise SyntaxError(msg)
@@ -248,7 +262,7 @@ def _flush_op_by_precedence(
     while (
         stack
         and (isinstance(stack[-1], _DLTypeOperator | _DLTypeGroupToken))
-        and _op_precedence.get(stack[-1], 0) >= _op_precedence.get(current_op, 0)
+        and op_precedence(stack[-1]) >= op_precedence(current_op)
     ):
         postfix.append(stack.pop())
 
@@ -276,50 +290,78 @@ def _postfix_from_infix(identifier: str, expression: list[TokenT | str | int]) -
 
     while current_index < len(expression):
         token = expression[current_index]
+        print(f"current token {token}", postfix)
+        match token:
+            case _DLTypeInfixOperator():
+                print(f"{token} infix")
+                current_op = token
+                _flush_op_by_precedence(stack, postfix, current_op)
 
-        if isinstance(token, int):
-            postfix.append(token)
-            current_index += 1
-        elif token in _infix_operators:
-            current_op = token
-            _flush_op_by_precedence(stack, postfix, current_op)
-
-            stack.append(current_op)
-            current_index += 1
-        elif token in _functional_operators or token == _DLTypeGroupToken.LPAREN:
-            current_op = token
-            assert isinstance(current_op, _DLTypeGroupToken | _DLTypeOperator)
-            _flush_op_by_precedence(stack, postfix, current_op)
-
-            lparen, comma_indices, rparen = _get_group_indices(expression[current_index:], current_index)
-            if token in _binary_functions and len(comma_indices) != 1:
-                msg = f"{token.value} requires two arguments, received {len(comma_indices) + 1}"
-                raise SyntaxError(msg)
-            if token in _unary_functions and len(comma_indices) != 0:
-                msg = f"{token.value} requires one argument, received {len(comma_indices) + 1}"
-                raise SyntaxError(msg)
-            if token == _DLTypeGroupToken.LPAREN and len(comma_indices) != 0:
-                msg = "Group received invalid comma separator"
-                raise SyntaxError(msg)
-
-            lhs = lparen
-            for arg_idx in [*comma_indices, rparen]:
-                inner_expr = _postfix_from_infix(f"{identifier}[{arg_idx}]", expression[lhs + 1 : arg_idx])
-                postfix.extend(inner_expr.parsed_expression)
-                scope_vars.update(exp for exp in inner_expr.parsed_expression if isinstance(exp, str))
-                lhs = arg_idx
-
-            if current_op in _functional_operators:
                 stack.append(current_op)
-            current_index = rparen + 1
-        elif isinstance(token, str) and _VALID_IDENTIFIER_RX.match(token):
-            postfix.append(token)
-            scope_vars.add(token)
-            current_index += 1
-        else:
-            msg = f"Invalid expression={identifier} [{token=}] pos={current_index}/{len(expression)}"
-            raise SyntaxError(msg)
+                current_index += 1
+            case _DLTypeFunctionalOperator() | _DLTypeUnaryFunctionOperator() | _DLTypeGroupToken.LPAREN:
+                print(f"{token} func")
+                current_op = token
+                _flush_op_by_precedence(stack, postfix, current_op)
 
+                lparen, comma_indices, rparen = _get_group_indices(expression[current_index:], current_index)
+                if isinstance(token, _DLTypeFunctionalOperator) and len(comma_indices) != 1:
+                    msg = f"{token.value} requires two arguments, received {len(comma_indices) + 1}"
+                    raise SyntaxError(msg)
+                if isinstance(token, _DLTypeUnaryFunctionOperator) and len(comma_indices) != 0:
+                    msg = f"{token.value} requires one argument, received {len(comma_indices) + 1}"
+                    raise SyntaxError(msg)
+                if token == _DLTypeGroupToken.LPAREN and len(comma_indices) != 0:
+                    msg = "Group received invalid comma separator"
+                    raise SyntaxError(msg)
+
+                lhs = lparen
+                for arg_idx in [*comma_indices, rparen]:
+                    inner_expr = _postfix_from_infix(
+                        f"{identifier}[{arg_idx}]", expression[lhs + 1 : arg_idx]
+                    )
+                    postfix.extend(inner_expr.parsed_expression)
+                    scope_vars.update(exp for exp in inner_expr.parsed_expression if isinstance(exp, str))
+                    lhs = arg_idx
+
+                if isinstance(current_op, _DLTypeFunctionalOperator | _DLTypeUnaryFunctionOperator):
+                    stack.append(current_op)
+                current_index = rparen + 1
+
+                if token == _DLTypeGroupToken.LPAREN and len(comma_indices) != 0:
+                    msg = "Group received invalid comma separator"
+                    raise SyntaxError(msg)
+
+                lhs = lparen
+                for arg_idx in [*comma_indices, rparen]:
+                    inner_expr = _postfix_from_infix(
+                        f"{identifier}[{arg_idx}]", expression[lhs + 1 : arg_idx]
+                    )
+                    postfix.extend(inner_expr.parsed_expression)
+                    scope_vars.update(exp for exp in inner_expr.parsed_expression if isinstance(exp, str))
+                    lhs = arg_idx
+
+                if isinstance(current_op, _DLTypeUnaryFunctionOperator | _DLTypeFunctionalOperator):
+                    stack.append(current_op)
+                current_index = rparen + 1
+            case int():
+                print(f"{token} int")
+                postfix.append(token)
+                current_index += 1
+
+            case str():
+                print(f"{token} string")
+                if _VALID_IDENTIFIER_RX.match(str(token)) is None:
+                    msg = f"Invalid expression={identifier} [{token=}] pos={current_index}/{len(expression)}"
+                    raise SyntaxError(msg)
+                postfix.append(token)
+                scope_vars.add(token)
+                current_index += 1
+            case _DLTypeGroupToken.RPAREN | _DLTypeGroupToken.COMMA | _DLTypeSpecifier.EQUALS:
+                msg = f"Invalid expression={identifier} [{token=}] pos={current_index}/{len(expression)}"
+                raise SyntaxError(msg)
+
+        print(f"postfix after {token}", postfix, stack)
     # Pop any remaining operators
     while stack:
         postfix.append(stack.pop())
@@ -332,12 +374,16 @@ TokenT: typing.TypeAlias = _DLTypeSpecifier | _DLTypeGroupToken | _DLTypeOperato
 
 
 def _span_to_tok(character: str) -> TokenT | None:
-    maybe_operator = typing.cast("_DLTypeOperator | None", _DLTypeOperator._value2member_map_.get(character))
-    maybe_specifier = typing.cast(
-        "_DLTypeSpecifier | None", _DLTypeSpecifier._value2member_map_.get(character)
+    return typing.cast(
+        "TokenT",
+        (
+            _DLTypeFunctionalOperator._value2member_map_
+            | _DLTypeInfixOperator._value2member_map_
+            | _DLTypeUnaryFunctionOperator._value2member_map_
+            | _DLTypeSpecifier._value2member_map_
+            | _DLTypeGroupToken._value2member_map_
+        ).get(character),
     )
-    maybe_group = typing.cast("_DLTypeGroupToken | None", _DLTypeGroupToken._value2member_map_.get(character))
-    return maybe_operator or maybe_specifier or maybe_group
 
 
 def _span_to_str_or_int(span: str) -> str | int:
@@ -355,7 +401,7 @@ def _assert_token_list_valid(tokenized: list[str | int | TokenT]) -> None:
         # special case where the only token is an identifier
         return
 
-    if len(tokenized) == 2 and tokenized[0] == _DLTypeOperator.MUL and isinstance(tokenized[1], str):  # noqa: PLR2004
+    if len(tokenized) == 2 and tokenized[0] == _DLTypeInfixOperator.MUL and isinstance(tokenized[1], str):  # noqa: PLR2004
         # is an anonymous named axis
         return
 
@@ -364,10 +410,10 @@ def _assert_token_list_valid(tokenized: list[str | int | TokenT]) -> None:
     n_actual_args = 0
 
     for tok in reversed(tokenized):
-        if tok in _unary_functions:
+        if isinstance(tok, _DLTypeUnaryFunctionOperator):
             n_expected_args += 1
             n_actual_args += 1
-        elif tok in _binary_functions | _infix_operators:
+        elif isinstance(tok, _DLTypeFunctionalOperator | _DLTypeInfixOperator):
             # all operators are binary
             n_expected_args += 2
             n_actual_args += 1
@@ -376,9 +422,10 @@ def _assert_token_list_valid(tokenized: list[str | int | TokenT]) -> None:
         elif isinstance(tok, _DLTypeGroupToken):
             continue
         else:
-            raise SyntaxError(tok)
+            raise SyntaxError(tok)  # noqa: TRY004
 
     if n_expected_args != n_actual_args:
+        _logger.error("%s Expected %d args received %d", tokenized, n_expected_args, n_actual_args)
         raise SyntaxError("Invalid expression syntax: " + "".join(map(repr, tokenized)))
 
 
